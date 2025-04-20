@@ -4,26 +4,20 @@ from PIL import Image
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image as keras_image
 import time
 import requests
 import os
 from dotenv import load_dotenv
+from transformers import AutoImageProcessor, AutoModelForImageClassification
+import torch
 
-# Load environment variables from .env file
 load_dotenv()
 
 USDA_API_KEY = os.getenv("USDA_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-print(f"USDA_API_KEY from .env: {USDA_API_KEY}")  # Debug print
-print(f"GEMINI_API_KEY from .env: {GEMINI_API_KEY}")  # Debug print
-
-# --- USDA API Configuration ---
 USDA_API_BASE_URL = "https://api.nal.usda.gov/fdc/v1"
 
-# --- Gemini API Configuration ---
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     gemini_model = genai.GenerativeModel('gemini-2.0-flash-thinking-exp-01-21')
@@ -32,7 +26,6 @@ else:
     st.warning(
         "Gemini API key not configured. Health benefit summaries will be placeholders.")
 
-# Set Streamlit page configuration with custom theme
 st.set_page_config(
     page_title="NutriScan Dashboard",
     page_icon="🍎",
@@ -40,7 +33,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better styling
 st.markdown("""
     <style>
     .main {
@@ -112,7 +104,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# App Header with Logo
 st.markdown("""
     <div class="header-container">
         <div class="logo">🍎</div>
@@ -122,36 +113,145 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Load CNN model
-
 
 @st.cache_resource
-def load_ml_model():
-    return load_model(r"model.h5")
+def load_hf_model():
+    processor = AutoImageProcessor.from_pretrained(
+        "dima806/fruit_100_types_image_detection")
+    model = AutoModelForImageClassification.from_pretrained(
+        "dima806/fruit_100_types_image_detection")
+    return processor, model
 
 
 try:
-    model = load_ml_model()
+    processor, hf_model = load_hf_model()
     model_loaded = True
+    hf_labels = hf_model.config.id2label
+    simple_label_map = {
+        'apple': 'apple',
+        'banana': 'banana',
+        'grape': 'grapes',
+        'mango': 'mango',
+        'strawberry': 'strawberry',
+        'apple_granny_smith': 'apple',
+        'banana_red': 'banana',
+        'grape_white': 'grapes',
+        'mango_red': 'mango',
+        'strawberry_wild': 'strawberry',
+        'abiu': 'abiu',
+        'acai': 'acai',
+        'acerola': 'acerola cherry',
+        'ackee': 'ackee',
+        'ambarella': 'ambarella',
+        'apricot': 'apricot',
+        'avocado': 'avocado',
+        'barbadine': 'barbadine',
+        'barberry': 'barberry',
+        'betel_nut': 'betel nut',
+        'bitter_gourd': 'bitter gourd',
+        'black_berry': 'blackberry',
+        'black_mullberry': 'black mulberry',
+        'brazil_nut': 'brazil nut',
+        'camu_camu': 'camu camu',
+        'cashew': 'cashew',
+        'cempedak': 'cempedak',
+        'chenet': 'chenet',
+        'cherimoya': 'cherimoya',
+        'chico': 'chico fruit',
+        'chokeberry': 'chokeberry',
+        'cluster_fig': 'cluster fig',
+        'coconut': 'coconut',
+        'corn_kernel': 'corn',
+        'cranberry': 'cranberry',
+        'cupuacu': 'cupuacu',
+        'custard_apple': 'custard apple',
+        'damson': 'damson plum',
+        'dewberry': 'dewberry',
+        'dragonfruit': 'dragon fruit',
+        'durian': 'durian',
+        'eggplant': 'eggplant',
+        'elderberry': 'elderberry',
+        'emblic': 'emblic',
+        'feijoa': 'feijoa',
+        'fig': 'fig',
+        'finger_lime': 'finger lime',
+        'gooseberry': 'gooseberry',
+        'goumi': 'goumi berry',
+        'grapefruit': 'grapefruit',
+        'greengage': 'greengage plum',
+        'grenadilla': 'grenadilla',
+        'guava': 'guava',
+        'hard_kiwi': 'kiwi fruit',
+        'hawthorn': 'hawthorn berry',
+        'hog_plum': 'hog plum',
+        'horned_melon': 'horned melon',
+        'indian_strawberry': 'indian strawberry',
+        'jaboticaba': 'jaboticaba',
+        'jackfruit': 'jackfruit',
+        'jalapeno': 'jalapeno pepper',
+        'jamaica_cherry': 'jamaica cherry',
+        'jambul': 'jambul',
+        'jocote': 'jocote',
+        'jujube': 'jujube fruit',
+        'kaffir_lime': 'kaffir lime',
+        'kumquat': 'kumquat',
+        'lablab': 'lablab bean',
+        'langsat': 'langsat',
+        'longan': 'longan',
+        'mabolo': 'mabolo',
+        'malay_apple': 'malay apple',
+        'mandarine': 'mandarin orange',
+        'mandarine orange': 'mandarin orange',
+        'mangosteen': 'mangosteen',
+        'medlar': 'medlar fruit',
+        'mock_strawberry': 'mock strawberry',
+        'morinda': 'morinda',
+        'mountain_soursop': 'mountain soursop',
+        'oil_palm': 'oil palm fruit',
+        'olive': 'olive',
+        'otaheite_apple': 'otaheite apple',
+        'papaya': 'papaya',
+        'passion_fruit': 'passion fruit',
+        'pawpaw': 'pawpaw',
+        'pea': 'peas',
+        'pineapple': 'pineapple',
+        'plumcot': 'plumcot',
+        'pomegranate': 'pomegranate',
+        'prikly_pear': 'prickly pear',
+        'quince': 'quince',
+        'rambutan': 'rambutan',
+        'raspberry': 'raspberry',
+        'redcurrant': 'red currant',
+        'rose_hip': 'rose hip',
+        'rose_leaf_bramble': 'roseleaf bramble',
+        'salak': 'salak',
+        'santol': 'santol',
+        'sapodilla': 'sapodilla',
+        'sea_buckthorn': 'sea buckthorn',
+        'strawberry_guava': 'strawberry guava',
+        'sugar_apple': 'sugar apple',
+        'taxus_baccata': 'taxus baccata fruit',
+        'ugli_fruit': 'ugli fruit',
+        'white_currant': 'white currant',
+        'yali_pear': 'yali pear',
+        'yellow_plum': 'yellow plum',
+        'goumi berry': 'goumi berry',
+        'hawthorn berry': 'hawthorn berry',
+        'jujube fruit': 'jujube fruit',
+        'medlar fruit': 'medlar fruit',
+        'oil palm fruit': 'oil palm fruit',
+        'taxus baccata fruit': 'taxus baccata fruit'
+    }
+
 except Exception as e:
-    st.error(f"Error loading model: {e}")
+    st.error(f"Error loading Hugging Face model: {e}")
     model_loaded = False
-
-# Fruit class mapping
-class_labels = {
-    0: "apple",
-    1: "banana",
-    2: "grapes",
-    3: "mango",
-    4: "strawberry"
-}
-
-# --- USDA API Functions ---
+    processor, hf_model, hf_labels = None, None, {}
+    simple_label_map = {}
 
 
 @st.cache_data(ttl=3600)
 def get_fruit_data_from_usda(fruit_name):
-    """Fetches fruit data from USDA FoodData Central API."""
     if not USDA_API_KEY:
         st.warning("USDA API key is not set in environment variables.")
         return None
@@ -165,11 +265,7 @@ def get_fruit_data_from_usda(fruit_name):
             "pageSize": 1
         }
 
-        st.info(f"Requesting USDA data for: {fruit_name}")
         response = requests.get(search_url, params=params)
-
-        # Debug response
-        st.info(f"USDA API Status Code: {response.status_code}")
 
         if response.status_code != 200:
             st.error(f"USDA API Error: {response.text}")
@@ -182,7 +278,6 @@ def get_fruit_data_from_usda(fruit_name):
                 f"No results found for '{fruit_name}' in USDA database.")
             return None
 
-        # Get FDC ID of the first result
         food_id = search_results['foods'][0]['fdcId']
 
         food_url = f"{USDA_API_BASE_URL}/food/{food_id}"
@@ -191,12 +286,7 @@ def get_fruit_data_from_usda(fruit_name):
             "format": "full"
         }
 
-        st.info(f"Fetching detailed data for food ID: {food_id}")
         food_response = requests.get(food_url, params=food_params)
-
-        # Debug response
-        st.info(
-            f"USDA Food Detail API Status Code: {food_response.status_code}")
 
         if food_response.status_code != 200:
             st.error(f"USDA Food Detail API Error: {food_response.text}")
@@ -214,11 +304,9 @@ def get_fruit_data_from_usda(fruit_name):
 
 
 def process_usda_data_for_app(usda_food_data):
-    """Processes USDA data to match the format expected by the app."""
     if not usda_food_data:
         return None
 
-    # Initialize with default structure and values
     processed_fruit_data = {
         "name": usda_food_data.get('description', 'Unknown Fruit'),
         "calories": "0 kcal",
@@ -231,7 +319,6 @@ def process_usda_data_for_app(usda_food_data):
         "health_benefits": []
     }
 
-    # Process food nutrients using the correct key structure
     nutrient_mapping = {
         "Energy": {"key": "calories", "group": None},
         "Protein": {"key": "proteins", "group": None},
@@ -247,33 +334,26 @@ def process_usda_data_for_app(usda_food_data):
         "Calcium, Ca": {"key": "calcium", "group": "minerals"}
     }
 
-    # USDA API has different key structures based on the data type
-    # Check for different possible structures
     nutrients = usda_food_data.get('foodNutrients', [])
 
     for nutrient in nutrients:
-        # Handle different response formats from USDA API
         nutrient_name = None
         nutrient_value = None
         unit_name = None
 
-        # Format 1: nutrient has nutrient object
         if 'nutrient' in nutrient:
             nutrient_name = nutrient['nutrient'].get('name')
             nutrient_value = nutrient.get('amount')
             unit_name = nutrient['nutrient'].get('unitName')
 
-        # Format 2: direct properties
         else:
             nutrient_name = nutrient.get('nutrientName')
             nutrient_value = nutrient.get('value')
             unit_name = nutrient.get('unitName')
 
-        # Skip if missing critical data
         if not nutrient_name or nutrient_value is None or not unit_name:
             continue
 
-        # Process the nutrient based on the mapping
         if nutrient_name in nutrient_mapping:
             mapping = nutrient_mapping[nutrient_name]
             value_with_unit = f"{nutrient_value} {unit_name}"
@@ -286,12 +366,9 @@ def process_usda_data_for_app(usda_food_data):
 
     return processed_fruit_data
 
-# --- Gemini Health Benefit Summarization Function ---
 
-
-@st.cache_data(ttl=3600)  # Cache Gemini summaries for an hour
+@st.cache_data(ttl=3600)
 def generate_health_benefit_summary_gemini(fruit_data):
-    """Generates a health benefit summary using Google Gemini."""
     global gemini_model
     if not gemini_model:
         return "**Gemini Health Benefit Summaries are disabled.** Please configure Gemini API keys to enable this feature."
@@ -304,8 +381,7 @@ def generate_health_benefit_summary_gemini(fruit_data):
     for nutrient_type in ["vitamins", "minerals"]:
         for nutrient, value in fruit_data.get(nutrient_type, {}).items():
             nutrients_for_prompt += f"{nutrient}: {value}, "
-    nutrients_for_prompt = nutrients_for_prompt.rstrip(
-        ", ")  # Remove trailing comma
+    nutrients_for_prompt = nutrients_for_prompt.rstrip(", ")
 
     prompt = f"""Summarize the key health benefits of eating {fruit_name}, based on its nutritional content: {nutrients_for_prompt}. Keep the summary concise (around 3-4 sentences) and focus on benefits relevant to an average person's diet and health. """
 
@@ -313,13 +389,12 @@ def generate_health_benefit_summary_gemini(fruit_data):
         response = gemini_model.generate_content(prompt)
         summary = response.text
         return summary
-    except Exception as e:  # Catch any potential errors
+    except Exception as e:
         st.error(
             f"Error generating health benefit summary with Gemini API: {e}")
         return "Error generating AI summary. Please try again later."
 
 
-# Main content area
 st.subheader("📸 Upload Fruit Image")
 st.markdown(
     "Take a photo or upload an image of a fruit to analyze its nutritional content.")
@@ -330,23 +405,36 @@ uploaded_file = st.file_uploader(
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
-# CNN detection function
 
+def detect_objects(img, top_k=5):
+    with st.spinner('Analyzing image with Hugging Face model...'):
+        try:
+            inputs = processor(images=img, return_tensors="pt")
+            with torch.no_grad():
+                outputs = hf_model(**inputs)
+                logits = outputs.logits
 
-def detect_objects(img):
-    with st.spinner('Analyzing image...'):
-        img = img.resize((128, 128))  # Match CNN input size
-        img_array = keras_image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0)
-        img_array /= 255.0
-        time.sleep(1)  # Slight delay for spinner
-        predictions = model.predict(img_array)
-        confidence_scores = predictions[0] * 100
-        predicted_class = np.argmax(predictions)
-        fruit_name = class_labels.get(predicted_class, "Unknown")
-        return fruit_name, confidence_scores
+            probabilities = torch.nn.functional.softmax(logits, dim=-1)
+            confidence_scores, predicted_class_indices = torch.topk(
+                probabilities, top_k, dim=1)
 
-# Function to create nutrition facts table
+            confidence_scores_list = confidence_scores.tolist()[0]
+            predicted_class_indices_list = predicted_class_indices.tolist()[0]
+
+            predicted_fruit_info = []
+            for idx, score in zip(predicted_class_indices_list, confidence_scores_list):
+                predicted_class_name_hf = hf_model.config.id2label[idx]
+                predicted_fruit_name = simple_label_map.get(
+                    predicted_class_name_hf.lower(), predicted_class_name_hf)
+                predicted_fruit_info.append(
+                    {'name': predicted_fruit_name, 'confidence': score * 100})
+
+            time.sleep(1)
+            return predicted_fruit_info
+
+        except Exception as e:
+            st.error(f"Error during Hugging Face model inference: {e}")
+            return [{'name': "Unknown", 'confidence': 0.0}]
 
 
 def create_nutrition_facts(fruit):
@@ -374,8 +462,6 @@ def create_nutrition_facts(fruit):
         st.markdown(f"**Calcium:** {minerals.get('calcium', 'N/A')}")
 
     st.markdown('</div>', unsafe_allow_html=True)
-
-# Function to create macronutrient visualization
 
 
 def create_macro_chart(fruit):
@@ -418,18 +504,14 @@ def create_macro_chart(fruit):
     fig.update_traces(texttemplate='%{y:.1f}g', textposition='outside')
     return fig
 
-# Function to create vitamins & minerals visualization
-
 
 def create_vitamins_minerals_chart(fruit):
     vitamins = fruit.get('vitamins', {})
     minerals = fruit.get('minerals', {})
 
-    # Assuming units for radar chart
     labels = ['Vitamin A (μg)', 'Vitamin C (mg)', 'Iron (mg)', 'Calcium (mg)']
     values = []
 
-    # Extract numeric values and handle units
     def extract_numeric(value_str):
         if not value_str or value_str == 'N/A':
             return 0
@@ -452,7 +534,7 @@ def create_vitamins_minerals_chart(fruit):
         line_color='#4CAF50'
     ))
 
-    max_val = max(values) if values else 1  # Avoid max on empty list
+    max_val = max(values) if values else 1
     fig.update_layout(
         polar=dict(
             radialaxis=dict(
@@ -468,8 +550,6 @@ def create_vitamins_minerals_chart(fruit):
     )
     return fig
 
-# Function to display health benefits
-
 
 def display_health_benefits(fruit):
     st.subheader("💪 Health Benefits (AI Powered)")
@@ -478,25 +558,24 @@ def display_health_benefits(fruit):
         f'<div class="health-benefit">{gemini_summary}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Function to show confidence scores
 
-
-def show_confidence_scores(scores):
+def show_confidence_scores(predicted_fruit_info):
     st.subheader("🔍 Detection Confidence")
-    fruits = list(class_labels.values())
-    sorted_indices = np.argsort(scores)[::-1]
-    sorted_fruits = [fruits[i] for i in sorted_indices]
-    sorted_scores = [scores[i] for i in sorted_indices]
+
+    fruit_names_for_chart = [item['name'].capitalize()
+                             for item in predicted_fruit_info]
+    confidence_values_for_chart = [item['confidence']
+                                   for item in predicted_fruit_info]
 
     fig = px.bar(
-        x=sorted_scores,
-        y=sorted_fruits,
+        x=confidence_values_for_chart,
+        y=fruit_names_for_chart,
         orientation='h',
-        text=[f"{score:.1f}%" for score in sorted_scores],
-        color=sorted_scores,
+        text=[f"{score:.1f}%" for score in confidence_values_for_chart],
+        color=confidence_values_for_chart,
         color_continuous_scale='Viridis',
         labels={'x': 'Confidence (%)', 'y': 'Fruit Type'},
-        title='Detection Confidence Scores'
+        title='Top Predicted Fruit Types'
     )
     fig.update_layout(
         yaxis=dict(categoryorder='total ascending'),
@@ -509,7 +588,6 @@ def show_confidence_scores(scores):
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-# Main application logic - now only using USDA API
 if uploaded_file is not None:
     try:
         image = Image.open(uploaded_file)
@@ -519,14 +597,14 @@ if uploaded_file is not None:
         analyze_button = st.button("🔍 Analyze Fruit", use_container_width=True)
 
         if analyze_button and model_loaded:
-            detected_fruit_name, confidence_scores = detect_objects(image)
+            top_predictions = detect_objects(image)
 
-            if detected_fruit_name != "Unknown":
+            top_fruit_name = top_predictions[0]['name']
+            if top_fruit_name != "Unknown":
                 st.success(
-                    f"✅ Successfully identified: **{detected_fruit_name.capitalize()}**!")
+                    f"✅ Successfully identified: **{top_fruit_name.capitalize()}**!")
 
-                # Get fruit data from USDA only
-                usda_fruit_data = get_fruit_data_from_usda(detected_fruit_name)
+                usda_fruit_data = get_fruit_data_from_usda(top_fruit_name)
 
                 if usda_fruit_data:
                     detected_fruit = process_usda_data_for_app(usda_fruit_data)
@@ -537,7 +615,7 @@ if uploaded_file is not None:
 
                         with tab1:
                             create_nutrition_facts(detected_fruit)
-                            show_confidence_scores(confidence_scores)
+                            show_confidence_scores(top_predictions)
 
                         with tab2:
                             col1, col2 = st.columns(2)
@@ -553,9 +631,8 @@ if uploaded_file is not None:
                             display_health_benefits(detected_fruit)
 
                             st.subheader("🔄 Compare with another fruit")
-                            # Create a list of other fruits that can be detected
                             other_fruits = [
-                                f for f in class_labels.values() if f != detected_fruit_name]
+                                "apple", "banana", "grapes", "mango", "strawberry"]
                             compare_fruit = st.selectbox(
                                 "Select a fruit to compare with:",
                                 other_fruits
@@ -563,7 +640,6 @@ if uploaded_file is not None:
 
                             if st.button("Compare"):
                                 with st.spinner(f"Fetching USDA data for {compare_fruit}..."):
-                                    # Get USDA data for comparison fruit
                                     comparison_usda_data = get_fruit_data_from_usda(
                                         compare_fruit)
                                     if comparison_usda_data:
@@ -574,7 +650,7 @@ if uploaded_file is not None:
                                             col1, col2 = st.columns(2)
                                             with col1:
                                                 st.markdown(
-                                                    f"**{detected_fruit_name.capitalize()}**")
+                                                    f"**{top_fruit_name.capitalize()}**")
                                                 st.markdown(
                                                     f"Calories: {detected_fruit.get('calories', 'N/A')}")
                                                 st.markdown(
@@ -603,10 +679,10 @@ if uploaded_file is not None:
                                             f"Could not retrieve USDA data for {compare_fruit}.")
                     else:
                         st.error(
-                            f"Could not process USDA data for {detected_fruit_name}.")
+                            f"Could not process USDA data for {top_fruit_name}.")
                 else:
                     st.warning(
-                        f"We identified the fruit as {detected_fruit_name}, but could not retrieve data from the USDA database.")
+                        f"We identified the fruit as {top_fruit_name}, but could not retrieve data from the USDA database.")
                     st.info(
                         "This could be due to API limitations or network issues. Please try again later.")
             else:
@@ -625,12 +701,15 @@ else:
 
         NutriScan identifies fruits and provides nutritional info from the USDA FoodData Central database and AI-powered health benefit summaries.
 
-        Our AI detects:
-        - 🍎 Apples
-        - 🍌 Bananas
-        - 🍇 Grapes
-        - 🥭 Mangoes
-        - 🍓 Strawberries
+        Our AI now detects a wide variety of fruits, including:
+        - **Common Fruits:** 🍎 Apples, 🍌 Bananas, 🍇 Grapes, 🥭 Mangoes, 🍓 Strawberries, 🍍 Pineapples, 🥝 Kiwis
+        - **Berries:** Blueberries, Raspberries, Blackberries, Cranberries
+        - **Citrus Fruits:** 🍊 Oranges, Lemons, Limes, Grapefruit, Mandarins
+        - **Tropical Fruits:**  🥑 Avocados, 🥭 Mangoes, 🍍 Pineapples, 🥥 Coconuts, 🥭 Papayas, Dragon Fruit
+        - **Stone Fruits:** 🍑 Peaches, Plums, Cherries, Apricots
+        - **And Many More!** Try uploading images of other fruits to discover what NutriScan can identify.
+
+        We are continuously expanding our detection capabilities!
         """)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -639,7 +718,6 @@ else:
                  caption="Example Image")
         st.markdown('</div>', unsafe_allow_html=True)
 
-# Footer
 st.markdown("""
     <footer>
         <p>NutriScan Dashboard v2.0 | Powered by AI & USDA | Data from USDA FoodData Central</p>
