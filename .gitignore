@@ -1,0 +1,18 @@
+# Image files
+*.jpeg
+*.jpg
+*.png
+*.avif
+*.webp
+
+# Environment config files
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
