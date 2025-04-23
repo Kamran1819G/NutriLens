@@ -1,8 +1,8 @@
-# NutriScan Dashboard 🍎
+# NutriLens Dashboard 🍎
 
 ## Overview
 
-NutriScan Dashboard is a Streamlit application that helps you identify fruits from images and provides detailed nutritional information. By simply uploading an image of a fruit, NutriScan utilizes AI image recognition to identify the fruit and then fetches its nutritional data from the USDA FoodData Central database.  Furthermore, it leverages the power of the Google Gemini API to generate insightful summaries of the health benefits associated with the identified fruit.
+NutriLens Dashboard is a Streamlit application that helps you identify fruits from images and provides detailed nutritional information. By simply uploading an image of a fruit, NutriLens utilizes AI image recognition to identify the fruit and then fetches its nutritional data from the USDA FoodData Central database.  Furthermore, it leverages the power of the Google Gemini API to generate insightful summaries of the health benefits associated with the identified fruit.
 
 This dashboard is designed to be a user-friendly tool for anyone interested in learning more about the fruits they eat, their nutritional content, and health advantages.
 
@@ -31,7 +31,7 @@ This dashboard is designed to be a user-friendly tool for anyone interested in l
 
 ## Setup Instructions
 
-To run NutriScan Dashboard locally, follow these steps:
+To run NutriLens Dashboard locally, follow these steps:
 
 1.  **Prerequisites:**
     *   Python 3.7 or higher is required.
@@ -40,7 +40,7 @@ To run NutriScan Dashboard locally, follow these steps:
 2.  **Clone the Repository:**
     ```bash
     git clone [repository URL] # Replace with your repository URL if you have one
-    cd NutriScan-Dashboard # Or the name of the cloned directory
+    cd NutriLens-Dashboard # Or the name of the cloned directory
     ```
 
 3.  **Install Dependencies:**
@@ -69,9 +69,9 @@ To run NutriScan Dashboard locally, follow these steps:
 5.  **Run the Streamlit App:**
     In your terminal, within the project directory, run the Streamlit application:
     ```bash
-    streamlit run your_script_name.py # Replace 'your_script_name.py' with the actual name of your Python script (e.g., app.py, NutriScan.py)
+    streamlit run your_script_name.py # Replace 'your_script_name.py' with the actual name of your Python script (e.g., app.py, NutriLens.py)
     ```
-    Streamlit will launch the NutriScan Dashboard in your web browser (usually at `http://localhost:8501`).
+    Streamlit will launch the NutriLens Dashboard in your web browser (usually at `http://localhost:8501`).
 
 ## Usage Instructions
 
@@ -112,8 +112,8 @@ For best results, use images with good lighting, a clear background, and where t
 
 ## Disclaimer
 
-NutriScan Dashboard is intended for educational and demonstration purposes. The accuracy of fruit identification depends on the performance of the Hugging Face model, and the nutritional data is sourced from the USDA FoodData Central API. While efforts are made to ensure accuracy, the information provided should not be considered a substitute for professional dietary or health advice. Always consult with qualified professionals for health-related decisions.
+NutriLens Dashboard is intended for educational and demonstration purposes. The accuracy of fruit identification depends on the performance of the Hugging Face model, and the nutritional data is sourced from the USDA FoodData Central API. While efforts are made to ensure accuracy, the information provided should not be considered a substitute for professional dietary or health advice. Always consult with qualified professionals for health-related decisions.
 
 ---
 
-Enjoy using NutriScan Dashboard to explore the nutritional world of fruits!
+Enjoy using NutriLens Dashboard to explore the nutritional world of fruits!
