@@ -27,7 +27,7 @@ else:
         "Gemini API key not configured. Health benefit summaries will be placeholders.")
 
 st.set_page_config(
-    page_title="NutriScan Dashboard",
+    page_title="NutriLens Dashboard",
     page_icon="🍎",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -108,7 +108,7 @@ st.markdown("""
     <div class="header-container">
         <div class="logo">🍎</div>
         <div>
-            <h1>NutriScan Dashboard</h1>
+            <h1>NutriLens Dashboard</h1>
         </div>
     </div>
 """, unsafe_allow_html=True)
@@ -695,11 +695,11 @@ if uploaded_file is not None:
 else:
     col1, col2 = st.columns([3, 2])
     with col1:
-        st.subheader("👋 Welcome to NutriScan!")
+        st.subheader("👋 Welcome to NutriLens!")
         st.markdown("""
         **Get started by uploading a fruit image above.**
 
-        NutriScan identifies fruits and provides nutritional info from the USDA FoodData Central database and AI-powered health benefit summaries.
+        NutriLens identifies fruits and provides nutritional info from the USDA FoodData Central database and AI-powered health benefit summaries.
 
         Our AI now detects a wide variety of fruits, including:
         - **Common Fruits:** 🍎 Apples, 🍌 Bananas, 🍇 Grapes, 🥭 Mangoes, 🍓 Strawberries, 🍍 Pineapples, 🥝 Kiwis
@@ -707,7 +707,7 @@ else:
         - **Citrus Fruits:** 🍊 Oranges, Lemons, Limes, Grapefruit, Mandarins
         - **Tropical Fruits:**  🥑 Avocados, 🥭 Mangoes, 🍍 Pineapples, 🥥 Coconuts, 🥭 Papayas, Dragon Fruit
         - **Stone Fruits:** 🍑 Peaches, Plums, Cherries, Apricots
-        - **And Many More!** Try uploading images of other fruits to discover what NutriScan can identify.
+        - **And Many More!** Try uploading images of other fruits to discover what NutriLens can identify.
 
         We are continuously expanding our detection capabilities!
         """)
@@ -720,6 +720,7 @@ else:
 
 st.markdown("""
     <footer>
-        <p>NutriScan Dashboard v2.0 | Powered by AI & USDA | Data from USDA FoodData Central</p>
+        <p>NutriLens Dashboard | Powered by Hugging Face 🤗, Google Gemini ✨, & USDA 🌾 | Data from USDA FoodData Central</p>
+        <p><small>Nutritional information is for general knowledge and informational purposes only, and does not constitute medical advice.</small></p>
     </footer>
 """, unsafe_allow_html=True)
